@@ -409,6 +409,7 @@ hl.config({
             toggle_switch_mode = 0,
             switch_toggle_auto_next = 1,
             switch_release_key = "Super_L",
+            tap_close_key = "",
             gesture_invert_vertical = 0,
 
             -- Niri mode
@@ -651,6 +652,7 @@ workspace thumbnail. Group order, membership, and lock state are preserved.
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `vim_keys` | bool | `0` | Use `h/j/k/l` to move left/down/up/right. Forces keyboard pick labels off and shows a warning, regardless of `pick_labels_enabled`. Overview opens ready for navigation; press `/` to search. |
+| `tap_close_key` | string | empty | Keysym name, for example `Super_L`. Pressing and releasing this key with no other key in between closes the visible overview, including during the opening animation. Empty disables it. Ignored during a toggle switch session. |
 
 Outside search, `Tab` and `Shift+Tab` cycle the selection in the same order the mouse wheel uses, independent of
 `vim_keys`. `Return` activates the selection and `Escape` closes overview.

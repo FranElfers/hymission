@@ -530,6 +530,8 @@ class OverviewController {
     [[nodiscard]] bool         toggleSwitchModeEnabled() const;
     [[nodiscard]] bool         switchToggleAutoNextEnabled() const;
     [[nodiscard]] std::string  switchReleaseKeyConfig() const;
+    [[nodiscard]] std::string  tapCloseKeyConfig() const;
+    bool                       handleTapCloseKey(const IKeyboard::SKeyEvent& event, const SP<IKeyboard>& keyboard);
     [[nodiscard]] bool         gestureInvertVerticalEnabled() const;
     [[nodiscard]] bool         workspaceSwipeInvertEnabled() const;
     [[nodiscard]] bool         workspaceChangeKeepsOverviewEnabled() const;
@@ -1015,6 +1017,8 @@ class OverviewController {
     bool                     m_beginCloseInProgress = false;
     bool                     m_toggleSwitchSessionActive = false;
     bool                     m_toggleSwitchReleaseArmed = false;
+    bool                     m_tapCloseArmed = false;
+    std::chrono::steady_clock::time_point m_tapCloseAt = {};
     std::size_t              m_stripSnapshotRenderDepth = 0;
     std::size_t              m_externalRawWindowRenderDepth = 0;
     std::string              m_externalRawWindowRenderToken;

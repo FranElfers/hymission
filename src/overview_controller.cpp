@@ -2851,6 +2851,12 @@ SDispatchResult OverviewController::toggle(const std::string& args) {
 
     const int cycleStep = toggleArguments->direction == ToggleDirection::Reverse ? -1 : 1;
 
+    // A release bind on the tap-close key can arrive right after the plugin
+    // already closed the overview for that same key release; do not reopen.
+    if ((m_state.phase == Phase::Closing || m_state.phase == Phase::ClosingSettle) &&
+        std::chrono::steady_clock::now() - m_tapCloseAt < std::chrono::milliseconds(250))
+        return {};
+
     if (m_state.phase == Phase::Inactive || m_state.phase == Phase::Closing || m_state.phase == Phase::ClosingSettle) {
         const bool activateSwitchSession = toggleSwitchModeEnabled();
         const auto result = open(toggleArguments->scope);
@@ -3600,6 +3606,9 @@ void OverviewController::handleKeyboard(const IKeyboard::SKeyEvent& event, Event
     }
 
     if (m_state.phase == Phase::Closing)
+        return;
+
+    if (handleTapCloseKey(event, keyboard))
         return;
 
     if (m_toggleSwitchSessionActive && event.state == WL_KEYBOARD_KEY_STATE_RELEASED && isSwitchReleaseEvent(event, keyboard)) {
@@ -5280,6 +5289,41 @@ bool OverviewController::switchToggleAutoNextEnabled() const {
 
 std::string OverviewController::switchReleaseKeyConfig() const {
     return getConfigString(m_handle, "plugin:hymission:switch_release_key", "Super_L");
+}
+
+std::string OverviewController::tapCloseKeyConfig() const {
+    return getConfigString(m_handle, "plugin:hymission:tap_close_key", "");
+}
+
+// Closes the visible overview when the configured key is pressed and released
+// with no other key in between. This is handled here instead of relying on a
+// compositor release bind, which Hyprland drops while the overview is opening.
+bool OverviewController::handleTapCloseKey(const IKeyboard::SKeyEvent& event, const SP<IKeyboard>& keyboard) {
+    const auto tapKey = tapCloseKeyConfig();
+    if (tapKey.empty() || m_toggleSwitchSessionActive) {
+        m_tapCloseArmed = false;
+        return false;
+    }
+
+    const xkb_keysym_t configuredKeysym = keysymFromConfiguredSwitchReleaseKey(tapKey);
+    if (configuredKeysym == XKB_KEY_NoSymbol)
+        return false;
+
+    const bool matches = xkb_state_key_get_one_sym(keyboard->m_xkbState, event.keycode + 8) == configuredKeysym;
+    if (event.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        m_tapCloseArmed = matches;
+        return false;
+    }
+
+    if (!matches || !m_tapCloseArmed)
+        return false;
+
+    m_tapCloseArmed = false;
+    m_tapCloseAt    = std::chrono::steady_clock::now();
+    if (debugLogsEnabled())
+        debugLog("[hymission] tap close key=" + tapKey);
+    beginClose();
+    return true;
 }
 
 bool OverviewController::gestureInvertVerticalEnabled() const {

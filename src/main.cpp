@@ -456,6 +456,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     STRING_CONF("workspace_strip_anchor", "left");
     STRING_CONF("workspace_strip_empty_mode", "existing");
     STRING_CONF("switch_release_key", "Super_L");
+    STRING_CONF("tap_close_key", "");
 #undef STRING_CONF
 #undef COLOR_CONF
 #undef FLOAT_CONF

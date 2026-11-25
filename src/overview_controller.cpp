@@ -599,6 +599,22 @@ std::optional<uint32_t> switchReleaseModifierMask(const std::string& value) {
     return std::nullopt;
 }
 
+bool isShortcutModifierKeysym(xkb_keysym_t keysym) {
+    switch (keysym) {
+        case XKB_KEY_Super_L:
+        case XKB_KEY_Super_R:
+        case XKB_KEY_Control_L:
+        case XKB_KEY_Control_R:
+        case XKB_KEY_Alt_L:
+        case XKB_KEY_Alt_R:
+        case XKB_KEY_Meta_L:
+        case XKB_KEY_Meta_R:
+        case XKB_KEY_Hyper_L:
+        case XKB_KEY_Hyper_R: return true;
+        default: return false;
+    }
+}
+
 xkb_keysym_t keysymFromConfiguredSwitchReleaseKey(const std::string& value) {
     if (value.empty())
         return XKB_KEY_NoSymbol;
@@ -3613,7 +3629,12 @@ void OverviewController::handleKeyboard(const IKeyboard::SKeyEvent& event, Event
         return;
     }
 
-    if (m_searchActive && m_searchInputFd >= 0) {
+    const xkb_keysym_t eventKeysym = xkb_state_key_get_one_sym(keyboard->m_xkbState, event.keycode + 8);
+    const bool         shortcutPress = event.state == WL_KEYBOARD_KEY_STATE_PRESSED &&
+        (isShortcutModifierKeysym(eventKeysym) || !overviewTextInputAllowed(keyboard->getModifiers(), HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META));
+    const bool         unpairedRelease = event.state == WL_KEYBOARD_KEY_STATE_RELEASED &&
+        std::none_of(m_searchPendingKeys.begin(), m_searchPendingKeys.end(), [&](const auto& key) { return key.event.keycode == event.keycode; });
+    if (m_searchActive && m_searchInputFd >= 0 && !(shortcutPress || unpairedRelease)) {
         // A spawned helper is not necessarily mapped or focused yet. Never let
         // search keystrokes reach the application underneath the overview.
         if (!ensureSearchInputFocus()) {
